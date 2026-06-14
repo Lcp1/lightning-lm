@@ -11,7 +11,7 @@ void PointCloudPreprocess::Set(LidarType lid_type, double bld, int pfilt_num) {
     point_filter_num_ = pfilt_num;
 }
 
-void PointCloudPreprocess::Process(const sensor_msgs::msg::PointCloud2 ::SharedPtr &msg, PointCloudType::Ptr &pcl_out) {
+void PointCloudPreprocess::Process(const sensor_msgs::PointCloud2::ConstPtr &msg, PointCloudType::Ptr &pcl_out) {
     switch (lidar_type_) {
         case LidarType::OUST64:
             Oust64Handler(msg);
@@ -32,66 +32,7 @@ void PointCloudPreprocess::Process(const sensor_msgs::msg::PointCloud2 ::SharedP
     *pcl_out = cloud_out_;
 }
 
-void PointCloudPreprocess::Process(const livox_ros_driver2::msg::CustomMsg::SharedPtr &msg,
-                                   PointCloudType::Ptr &pcl_out) {
-    cloud_out_.clear();
-    cloud_full_.clear();
-
-    int plsize = msg->point_num;
-
-    cloud_out_.reserve(plsize);
-    cloud_full_.resize(plsize);
-
-    std::vector<char> is_valid_pt(plsize, 0);
-    std::vector<uint> index(plsize - 1);
-    for (uint i = 0; i < plsize - 1; ++i) {
-        index[i] = i + 1;  // 从1开始
-    }
-
-    std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](const uint &i) {
-        // if ((msg->points[i].line < num_scans_) &&
-        // ((msg->points[i].tag & 0x30) == 0x10 || (msg->points[i].tag & 0x30) == 0x00)) {
-        if (i % point_filter_num_ != 0) {
-            return;
-        }
-
-        cloud_full_[i].x = msg->points[i].x;
-        cloud_full_[i].y = msg->points[i].y;
-        cloud_full_[i].z = msg->points[i].z;
-        cloud_full_[i].intensity = msg->points[i].reflectivity;
-
-        // use curvature as time of each laser points, curvature unit: ms
-        cloud_full_[i].time = msg->points[i].offset_time / double(1000000);
-
-        if (cloud_full_[i].z < height_min_ || cloud_full_[i].z > height_max_) {
-            return;
-        }
-
-        if ((abs(cloud_full_[i].x - cloud_full_[i - 1].x) > 1e-7) ||
-            (abs(cloud_full_[i].y - cloud_full_[i - 1].y) > 1e-7) ||
-            (abs(cloud_full_[i].z - cloud_full_[i - 1].z) > 1e-7) &&
-                (cloud_full_[i].x * cloud_full_[i].x + cloud_full_[i].y * cloud_full_[i].y +
-                     cloud_full_[i].z * cloud_full_[i].z >
-                 (blind_ * blind_))) {
-            is_valid_pt[i] = 1;
-        }
-
-        // }
-    });
-
-    for (uint i = 1; i < plsize; i++) {
-        if (is_valid_pt[i]) {
-            cloud_out_.points.push_back(cloud_full_[i]);
-        }
-    }
-
-    cloud_out_.width = cloud_out_.size();
-    cloud_out_.height = 1;
-    cloud_out_.is_dense = false;
-    *pcl_out = cloud_out_;
-}
-
-void PointCloudPreprocess::Oust64Handler(const sensor_msgs::msg::PointCloud2::SharedPtr &msg) {
+void PointCloudPreprocess::Oust64Handler(const sensor_msgs::PointCloud2::ConstPtr &msg) {
     cloud_out_.clear();
     cloud_full_.clear();
 
@@ -131,7 +72,7 @@ void PointCloudPreprocess::Oust64Handler(const sensor_msgs::msg::PointCloud2::Sh
     cloud_out_.is_dense = false;
 }
 
-void PointCloudPreprocess::RoboSenseHandler(const sensor_msgs::msg::PointCloud2::SharedPtr &msg) {
+void PointCloudPreprocess::RoboSenseHandler(const sensor_msgs::PointCloud2::ConstPtr &msg) {
     cloud_out_.clear();
     cloud_full_.clear();
 
@@ -177,7 +118,7 @@ void PointCloudPreprocess::RoboSenseHandler(const sensor_msgs::msg::PointCloud2:
     cloud_out_.is_dense = false;
 }
 
-void PointCloudPreprocess::VelodyneHandler(const sensor_msgs::msg::PointCloud2::SharedPtr &msg) {
+void PointCloudPreprocess::VelodyneHandler(const sensor_msgs::PointCloud2::ConstPtr &msg) {
     cloud_out_.clear();
     cloud_full_.clear();
 

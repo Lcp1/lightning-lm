@@ -7,8 +7,6 @@
 
 #include "core/system/slam.h"
 #include "utils/timer.h"
-#include "wrapper/bag_io.h"
-#include "wrapper/ros_utils.h"
 
 DEFINE_string(config, "./config/default.yaml", "配置文件");
 
@@ -21,8 +19,8 @@ int main(int argc, char** argv) {
 
     using namespace lightning;
 
-    /// 需要rclcpp::init
-    rclcpp::init(argc, argv);
+    /// ROS1 init
+    ros::init(argc, argv, "lightning_slam");
 
     SlamSystem::Options options;
     options.online_mode_ = true;
@@ -38,7 +36,7 @@ int main(int argc, char** argv) {
 
     Timer::PrintAll();
 
-    rclcpp::shutdown();
+    ros::shutdown();
 
     LOG(INFO) << "done";
 

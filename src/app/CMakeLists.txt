@@ -5,6 +5,8 @@ add_executable(run_frontend_offline
 target_link_libraries(run_frontend_offline
         ${PROJECT_NAME}.libs
         ${third_party_libs}
+        ${catkin_LIBRARIES}
+        ${Boost_LIBRARIES}
 )
 
 add_executable(run_loop_offline
@@ -14,6 +16,8 @@ add_executable(run_loop_offline
 target_link_libraries(run_loop_offline
         ${PROJECT_NAME}.libs
         ${third_party_libs}
+        ${catkin_LIBRARIES}
+        ${Boost_LIBRARIES}
 )
 
 add_executable(run_slam_offline
@@ -23,6 +27,8 @@ add_executable(run_slam_offline
 target_link_libraries(run_slam_offline
         ${PROJECT_NAME}.libs
         ${third_party_libs}
+        ${catkin_LIBRARIES}
+        ${Boost_LIBRARIES}
 )
 
 add_executable(run_slam_online
@@ -32,6 +38,8 @@ add_executable(run_slam_online
 target_link_libraries(run_slam_online
         ${PROJECT_NAME}.libs
         ${third_party_libs}
+        ${catkin_LIBRARIES}
+        ${Boost_LIBRARIES}
 )
 
 add_executable(run_loc_offline
@@ -41,6 +49,8 @@ add_executable(run_loc_offline
 target_link_libraries(run_loc_offline
         ${PROJECT_NAME}.libs
         ${third_party_libs}
+        ${catkin_LIBRARIES}
+        ${Boost_LIBRARIES}
 )
 
 add_executable(run_loc_online
@@ -50,6 +60,8 @@ add_executable(run_loc_online
 target_link_libraries(run_loc_online
         ${PROJECT_NAME}.libs
         ${third_party_libs}
+        ${catkin_LIBRARIES}
+        ${Boost_LIBRARIES}
 )
 
 add_executable(test_ui
@@ -59,6 +71,8 @@ add_executable(test_ui
 target_link_libraries(test_ui
         ${PROJECT_NAME}.libs
         ${third_party_libs}
+        ${catkin_LIBRARIES}
+        ${Boost_LIBRARIES}
 )
 
 install(TARGETS run_slam_offline run_slam_online run_loc_offline run_loc_online

@@ -409,7 +409,7 @@ void LaserMapping::MakeKF() {
     // }
 }
 
-void LaserMapping::ProcessPointCloud2(const sensor_msgs::msg::PointCloud2::SharedPtr &msg) {
+void LaserMapping::ProcessPointCloud2(const sensor_msgs::PointCloud2::ConstPtr &msg) {
     UL lock(mtx_buffer_);
     Timer::Evaluate(
         [&, this]() {
@@ -422,30 +422,6 @@ void LaserMapping::ProcessPointCloud2(const sensor_msgs::msg::PointCloud2::Share
 
             LOG(INFO) << "get cloud at " << std::setprecision(14) << timestamp
                       << ", latest imu: " << last_timestamp_imu_;
-
-            CloudPtr cloud(new PointCloudType());
-            preprocess_->Process(msg, cloud);
-
-            lidar_buffer_.push_back(cloud);
-            time_buffer_.push_back(timestamp);
-            last_timestamp_lidar_ = timestamp;
-        },
-        "Preprocess (Standard)");
-}
-
-void LaserMapping::ProcessPointCloud2(const livox_ros_driver2::msg::CustomMsg::SharedPtr &msg) {
-    UL lock(mtx_buffer_);
-    Timer::Evaluate(
-        [&, this]() {
-            scan_count_++;
-            double timestamp = ToSec(msg->header.stamp);
-            if (timestamp < last_timestamp_lidar_) {
-                LOG(ERROR) << "lidar loop back, clear buffer";
-                lidar_buffer_.clear();
-            }
-
-            // LOG(INFO) << "get cloud at " << std::setprecision(14) << timestamp
-            //           << ", latest imu: " << last_timestamp_imu_;
 
             CloudPtr cloud(new PointCloudType());
             preprocess_->Process(msg, cloud);

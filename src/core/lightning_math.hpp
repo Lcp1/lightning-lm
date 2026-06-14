@@ -14,9 +14,9 @@
 #include <cmath>
 #include <numeric>
 
-#include <tf2/LinearMath/Matrix3x3.h>
-#include <tf2/LinearMath/Quaternion.h>
-#include <rclcpp/time.hpp>
+#include <tf/LinearMath/Matrix3x3.h>
+#include <tf/LinearMath/Quaternion.h>
+#include <ros/time.h>
 
 #include "common/eigen_types.h"
 #include "common/options.h"
@@ -567,10 +567,10 @@ inline void KeepAngleIn2PI(double& angle) {
     }
 }
 
-inline builtin_interfaces::msg::Time FromSec(double t) {
-    builtin_interfaces::msg::Time ret;
-    ret.sec = int32_t(t);
-    ret.nanosec = int32_t((t - ret.sec) * 1e9);
+inline ros::Time FromSec(double t) {
+    ros::Time ret;
+    ret.sec = uint32_t(t);
+    ret.nsec = uint32_t((t - ret.sec) * 1e9);
     return ret;
 }
 
@@ -582,7 +582,7 @@ inline builtin_interfaces::msg::Time FromSec(double t) {
 /// 2020.11 change back to tf to keep consist
 inline PoseRPYD SE3ToRollPitchYaw(const SE3& pose) {
     auto rot = pose.rotationMatrix();
-    tf2::Matrix3x3 temp_tf_matrix(rot(0, 0), rot(0, 1), rot(0, 2), rot(1, 0), rot(1, 1), rot(1, 2), rot(2, 0),
+    tf::Matrix3x3 temp_tf_matrix(rot(0, 0), rot(0, 1), rot(0, 2), rot(1, 0), rot(1, 1), rot(1, 2), rot(2, 0),
                                   rot(2, 1), rot(2, 2));
     PoseRPYD output;
     output.x = pose.translation()[0];

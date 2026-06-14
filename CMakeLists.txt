@@ -25,38 +25,42 @@ if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif ()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
-# set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/libs)
-# set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/libs)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(cmake/packages.cmake)
 
-# msg 和 srv
-set(MY_SRV_FILES "")
-set(SRC_DIR ${PROJECT_SOURCE_DIR}/srv)
-file(GLOB_RECURSE SRC_FILES ${SRC_DIR}/*.srv)
-foreach (SRC_FILE ${SRC_FILES})
-    file(RELATIVE_PATH REL_PATH ${SRC_DIR} ${SRC_FILE})
-    list(APPEND MY_SRV_FILES ${PROJECT_SOURCE_DIR}:srv/${REL_PATH})
-endforeach ()
-
-rosidl_generate_interfaces(${PROJECT_NAME}
-        ${MY_SRV_FILES}
-        ${MY_MSG_FILES}
-        ${MY_ACTION_FILES}
-        DEPENDENCIES std_msgs geometry_msgs sensor_msgs nav_msgs
+# ROS1 service file generation
+add_service_files(
+    FILES
+    SaveMap.srv
+    LocCmd.srv
 )
 
-include_directories(
-        ${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp
+generate_messages(
+    DEPENDENCIES
+    std_msgs
+    geometry_msgs
+    sensor_msgs
+    nav_msgs
+)
+
+catkin_package(
+    CATKIN_DEPENDS
+    message_runtime
+    roscpp
+    std_msgs
+    geometry_msgs
+    sensor_msgs
+    nav_msgs
+    std_srvs
+    tf
+    tf2
+    tf2_ros
 )
 
 install(DIRECTORY config
         DESTINATION lib/${PROJECT_NAME}/
 )
 
-add_subdirectory(thirdparty/livox_ros_driver)
-
 add_subdirectory(src)
 
-ament_package()

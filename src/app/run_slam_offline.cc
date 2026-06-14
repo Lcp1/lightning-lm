@@ -37,8 +37,6 @@ int main(int argc, char** argv) {
 
     SlamSystem slam(options);
 
-    /// 实时模式好像掉帧掉的比较厉害？
-
     if (!slam.Init(FLAGS_config)) {
         LOG(ERROR) << "failed to init slam";
         return -1;
@@ -60,16 +58,10 @@ int main(int argc, char** argv) {
 
         /// lidar 的处理
         .AddPointCloud2Handle(lidar_topic,
-                              [&slam](sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+                              [&slam](sensor_msgs::PointCloud2::ConstPtr msg) {
                                   slam.ProcessLidar(msg);
                                   return true;
                               })
-        /// livox 的处理
-        .AddLivoxCloudHandle("/livox/lidar",
-                             [&slam](livox_ros_driver2::msg::CustomMsg::SharedPtr cloud) {
-                                 slam.ProcessLidar(cloud);
-                                 return true;
-                             })
         .Go();
 
     slam.SaveMap("");

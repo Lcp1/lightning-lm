@@ -79,20 +79,16 @@ bool SlamSystem::Init(const std::string& yaml_path) {
     }
 
     if (options_.online_mode_) {
-        LOG(INFO) << "online mode, creating ros2 node ... ";
+        LOG(INFO) << "online mode, creating ros node ... ";
 
         /// subscribers
-        node_ = std::make_shared<rclcpp::Node>("lightning_slam");
+        nh_ = ros::NodeHandle();
 
         imu_topic_ = yaml["common"]["imu_topic"].as<std::string>();
         cloud_topic_ = yaml["common"]["lidar_topic"].as<std::string>();
-        livox_topic_ = yaml["common"]["livox_lidar_topic"].as<std::string>();
 
-        rclcpp::QoS qos(10);
-        // qos.best_effort();
-
-        imu_sub_ = node_->create_subscription<sensor_msgs::msg::Imu>(
-            imu_topic_, qos, [this](sensor_msgs::msg::Imu::SharedPtr msg) {
+        imu_sub_ = nh_.subscribe<sensor_msgs::Imu>(
+            imu_topic_, 10, [this](const sensor_msgs::Imu::ConstPtr& msg) {
                 IMUPtr imu = std::make_shared<IMU>();
                 imu->timestamp = ToSec(msg->header.stamp);
                 imu->linear_acceleration =
@@ -103,19 +99,12 @@ bool SlamSystem::Init(const std::string& yaml_path) {
                 ProcessIMU(imu);
             });
 
-        cloud_sub_ = node_->create_subscription<sensor_msgs::msg::PointCloud2>(
-            cloud_topic_, qos, [this](sensor_msgs::msg::PointCloud2::SharedPtr cloud) {
+        cloud_sub_ = nh_.subscribe<sensor_msgs::PointCloud2>(
+            cloud_topic_, 10, [this](const sensor_msgs::PointCloud2::ConstPtr& cloud) {
                 Timer::Evaluate([&]() { ProcessLidar(cloud); }, "Proc Lidar", true);
             });
 
-        livox_sub_ = node_->create_subscription<livox_ros_driver2::msg::CustomMsg>(
-            livox_topic_, qos, [this](livox_ros_driver2::msg::CustomMsg ::SharedPtr cloud) {
-                Timer::Evaluate([&]() { ProcessLidar(cloud); }, "Proc Lidar", true);
-            });
-
-        savemap_service_ = node_->create_service<SaveMapService>(
-            "lightning/save_map", [this](const SaveMapService::Request::SharedPtr& req,
-                                         SaveMapService::Response::SharedPtr res) { SaveMap(req, res); });
+        savemap_service_ = nh_.advertiseService("lightning/save_map", &SlamSystem::SaveMap, this);
 
         LOG(INFO) << "online slam node has been created.";
     }
@@ -134,13 +123,14 @@ void SlamSystem::StartSLAM(std::string map_name) {
     running_ = true;
 }
 
-void SlamSystem::SaveMap(const SaveMapService::Request::SharedPtr request,
-                         SaveMapService::Response::SharedPtr response) {
-    map_name_ = request->map_id;
+bool SlamSystem::SaveMap(lightning::SaveMap::Request& request,
+                         lightning::SaveMap::Response& response) {
+    map_name_ = request.map_id;
     std::string save_path = "./data/" + map_name_ + "/";
 
     SaveMap(save_path);
-    response->response = 0;
+    response.response = 0;
+    return true;
 }
 
 void SlamSystem::SaveMap(const std::string& path) {
@@ -170,8 +160,6 @@ void SlamSystem::SaveMap(const std::string& path) {
     tm.ConvertFromFullPCD(global_map, start_pose, save_path);
 
     pcl::io::savePCDFileBinaryCompressed(save_path + "/global.pcd", *global_map);
-    // pcl::io::savePCDFileBinaryCompressed(save_path + "/global_no_loop.pcd", *global_map_no_loop);
-    // pcl::io::savePCDFileBinaryCompressed(save_path + "/global_raw.pcd", *global_map_raw);
 
     if (options_.with_gridmap_) {
         /// 存为ROS兼容的模式
@@ -238,39 +226,7 @@ void SlamSystem::ProcessIMU(const lightning::IMUPtr& imu) {
     lio_->ProcessIMU(imu);
 }
 
-void SlamSystem::ProcessLidar(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud) {
-    if (running_ == false) {
-        return;
-    }
-
-    lio_->ProcessPointCloud2(cloud);
-    lio_->Run();
-
-    auto kf = lio_->GetKeyframe();
-    if (kf != cur_kf_) {
-        cur_kf_ = kf;
-    } else {
-        return;
-    }
-
-    if (cur_kf_ == nullptr) {
-        return;
-    }
-
-    if (options_.with_loop_closing_) {
-        lc_->AddKF(cur_kf_);
-    }
-
-    if (options_.with_gridmap_) {
-        g2p5_->PushKeyframe(cur_kf_);
-    }
-
-    if (ui_) {
-        ui_->UpdateKF(cur_kf_);
-    }
-}
-
-void SlamSystem::ProcessLidar(const livox_ros_driver2::msg::CustomMsg::SharedPtr& cloud) {
+void SlamSystem::ProcessLidar(const sensor_msgs::PointCloud2::ConstPtr& cloud) {
     if (running_ == false) {
         return;
     }
@@ -303,8 +259,8 @@ void SlamSystem::ProcessLidar(const livox_ros_driver2::msg::CustomMsg::SharedPtr
 }
 
 void SlamSystem::Spin() {
-    if (options_.online_mode_ && node_ != nullptr) {
-        spin(node_);
+    if (options_.online_mode_) {
+        ros::spin();
     }
 }
 
